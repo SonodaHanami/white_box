@@ -1,0 +1,249 @@
+<html>
+<head>
+    <style>
+        body {
+            background-color: #000;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #div_settings {
+            position:absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50%;
+            min-width: 120px;
+            min-height: 120px;
+            background-color: #EEEEEE77;
+            z-index: 666;
+        }
+
+        #div_container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .box {
+            position: absolute;
+            display: inline-block;
+            color: #FFF;
+            width: auto;
+            height: auto;
+            border: 2px solid #FFF;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div id="div_settings">
+        <p>使用方法：在OBS“来源”添加“浏览器源”，URL填写本页面链接</p>
+        <h2>设置</h2>
+        <p>
+            <input type="checkbox" id="white_box" checked><label for="white_box">白框</label><br>
+            <input type="checkbox" id="random_shake" checked><label for="random_shake">随机抖动</label><br>
+        </p>
+        <p>
+            <input type="radio" name="content_style" id="content_style_text" checked>文字：<input type="text" id='content_text' placeholder="在页面上显示的文字" value="Hello World!"><br>
+            <input type="radio" name="content_style" id="content_style_time">当前时间<br>
+            <input type="radio" name="content_style" id="content_style_image">图片：<input accept="image/*" type='file' id="imgInp">
+        </p>
+        <p><input type="submit" value="隐藏设置" onclick="handle_settings();">点击页面也可以显示/隐藏设置</p>
+    </div>
+    <div id="div_container" onclick="handle_settings();">
+        <div id="box0" class="box"></div>
+    </div>
+</body>
+<script>
+    let SCREEN_WIDTH = 1920;
+    let SCREEN_HEIGHT = 1080;
+
+    const MIN_WIDTH = 20;
+    const MAX_WIDTH = 120;
+    // 长宽比
+    const MIN_RATIO = 2;
+    const MAX_RATIO = 2.5;
+
+    const SURPRICE_PROB = 0;
+    let PLUS_THRESHOLD = 0.8;
+    let MINUS_THRESHOLD = 0.2;
+    let box_status = {
+        'x': 0,
+        'y': 0,
+        'w': MIN_WIDTH,
+        'h': MIN_WIDTH * MIN_RATIO,
+        'd': 1,
+        'xs': 1,
+        'ys': 1,
+    }
+
+    let current_style = 'text';
+    let current_content = 'Hello World!'
+    let random_shake_enabled = true;
+    let white_box_enabled = true;
+
+    function random_change(n, step, a, b, mt, pt) {
+        let r = 1;
+        if (random_shake_enabled) {
+            r = Math.random();
+            if (r < 0.5) {
+                step = step * 2;
+            }
+        }
+        if (n - step <= a) {
+            return n + step;
+        }
+        else if (n + step >= b) {
+            return n - step;
+        }
+        // PLUS_THRESHOLD
+        else if (r > pt && n + step <= b) {
+            return n + step;
+        }
+        // MINUS_THRESHOLD
+        else if (r <= mt && n - step >= a) {
+            return n - step;
+        }
+        else {
+            return n;
+        }
+    }
+
+    function get_current_datetime() {
+        let now = new Date();
+        return `${now.toLocaleDateString("zh-CN")} ${now.toLocaleTimeString("zh-CN").slice(0, 8)}`;
+    }
+
+    function update_settings() {
+        console.log('update_settings');
+        random_shake_enabled = document.getElementById('random_shake').checked;
+        white_box_enabled = document.getElementById('white_box').checked;
+        if (white_box_enabled) {
+            document.getElementById('box0').style.borderWidth = '2px';
+        }
+        else {
+            document.getElementById('box0').style.borderWidth = '0';
+        }
+        
+        if (document.getElementById('content_style_text').checked) {
+            current_style = 'text';
+            current_content = document.getElementById('content_text').value;
+            document.getElementById('box0').innerHTML = current_content;
+            document.getElementById('box0').style.backgroundImage = '';
+            document.getElementById('box0').style.width = 'auto';
+            document.getElementById('box0').style.height = 'auto';
+        }
+        else if (document.getElementById('content_style_time').checked) {
+            current_style = 'time';
+            current_content = get_current_datetime();
+            document.getElementById('box0').innerHTML = current_content;
+            document.getElementById('box0').style.backgroundImage = '';
+            document.getElementById('box0').style.width = 'auto';
+            document.getElementById('box0').style.height = 'auto';
+        }
+        else if (document.getElementById('content_style_image').checked) {
+            current_style = 'image';
+            document.getElementById('box0').innerHTML = '<img id="content_image" src="#" alt="请选择图片～">';
+            let [file] = document.getElementById('imgInp').files;
+            if (file) {
+                document.getElementById('content_image').src = URL.createObjectURL(file);
+            }
+        }
+    }
+
+    function init_box_status() {
+        box_status['x'] = Math.floor(Math.random() * SCREEN_WIDTH);
+        box_status['y'] = Math.floor(Math.random() * SCREEN_HEIGHT);
+    }
+
+    function update_box_status() {
+        if (current_style == 'time') {
+            current_content = get_current_datetime();
+            document.getElementById('box0').innerHTML = current_content;
+        }
+        if (current_style == 'text' || current_style == 'time') {
+            box_status['w'] = document.getElementById('box0').clientWidth;
+            box_status['h'] = document.getElementById('box0').clientHeight;
+        }
+        if (current_style == 'image') {
+            box_status['w'] = document.getElementById('content_image').width;
+            box_status['h'] = document.getElementById('content_image').height;
+            document.getElementById('box0').style.width = `${box_status['w']}px`;
+            document.getElementById('box0').style.height = `${box_status['h']}px`;
+        }
+        SCREEN_WIDTH = document.getElementsByTagName('body')[0].clientWidth;
+        SCREEN_HEIGHT = document.getElementsByTagName('body')[0].clientHeight;
+        if (!(PLUS_THRESHOLD - MINUS_THRESHOLD > 0.3 && PLUS_THRESHOLD - MINUS_THRESHOLD < 0.7) || Math.random() < 0.5) {
+            PLUS_THRESHOLD = random_change(PLUS_THRESHOLD,   0.1, 0.5, 1, 0.3, 0.7);
+            MINUS_THRESHOLD = random_change(MINUS_THRESHOLD, 0.1, 0, 0.5, 0.3, 0.7);
+        }
+
+        elm = document.getElementById(`box0`);
+        box_status['x'] = random_change(box_status['x'], 1 * box_status['xs'], 0, SCREEN_WIDTH, PLUS_THRESHOLD, MINUS_THRESHOLD);
+        box_status['y'] = random_change(box_status['y'], 1 * box_status['ys'], 0, SCREEN_HEIGHT, PLUS_THRESHOLD, MINUS_THRESHOLD);
+        box_status['r'] = random_change(box_status['r'], 0.1, MIN_RATIO, MAX_RATIO), PLUS_THRESHOLD, MINUS_THRESHOLD;
+
+        if (box_status['x'] > SCREEN_WIDTH) {
+            box_status['x'] = Math.floor(Math.random() * SCREEN_WIDTH);
+        }
+        if (box_status['y'] > SCREEN_HEIGHT) {
+            box_status['y'] = Math.floor(Math.random() * SCREEN_HEIGHT);
+        }
+        // if (box_status['w'] < MIN_WIDTH) {
+        //     box_status['w'] = MIN_WIDTH;
+        // }
+        // if (box_status['w'] > MAX_WIDTH) {
+        //     box_status['w'] = MAX_WIDTH;
+        // }
+        // if (box_status['h'] < box_status['w'] * MIN_RATIO) {
+        //     box_status['h'] = box_status['w'] * MIN_RATIO;
+        // }
+        // if (box_status['h'] > box_status['w'] * MAX_RATIO) {
+        //     box_status['h'] = box_status['w'] * MAX_RATIO;
+        // }
+
+        if (box_status['x'] <= 1) {
+            box_status['xs'] = 1;
+        }
+        else if (box_status['x'] + box_status['w'] >= SCREEN_WIDTH - 1) {
+            box_status['xs'] = -1;
+        }
+        else if (Math.random() < SURPRICE_PROB) {
+            box_status['xs'] = -box_status['xs'];
+        }
+        if (box_status['y'] <= 1) {
+            box_status['ys'] = 1;
+        }
+        else if (box_status['y'] + box_status['h'] > SCREEN_HEIGHT - 1) {
+            box_status['ys'] = -1;
+        }
+        else if (Math.random() < SURPRICE_PROB) {
+            box_status['ys'] = -box_status['ys'];
+        }
+
+        elm.style.left = `${box_status['x']}px`;
+        elm.style.top = `${box_status['y']}px`;
+    }
+
+    function handle_settings() {
+        if (document.getElementById('div_settings').style.display == 'none') {
+            document.getElementById('div_settings').style.display = '';
+        }
+        else {
+            document.getElementById('div_settings').style.display = 'none';
+        }
+    }
+
+    let inputs = document.getElementsByTagName('input');
+    for (let i = 0; i < inputs.length - 1; i++) {
+        // 跳过最后一个（隐藏设置）
+        inputs[i].onchange = () => update_settings();
+    }
+
+    update_settings();
+    init_box_status();
+    setInterval(update_box_status, 10);
+</script>
+</html>
