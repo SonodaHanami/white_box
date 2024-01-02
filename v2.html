@@ -51,6 +51,9 @@
             <input type="radio" name="content_style" id="content_style_time">当前时间<br>
             <input type="radio" name="content_style" id="content_style_image">图片：<input accept="image/*" type='file' id="imgInp">
         </p>
+        <p>
+            缩放：<input type="number" id="scale" min="1" max="1000" value=100>%
+        </p>
         <p><input type="submit" value="隐藏设置" onclick="handle_settings();">点击页面也可以显示/隐藏设置</p>
     </div>
     <div id="div_container" onclick="handle_settings();">
@@ -84,6 +87,8 @@
     let current_content = 'Hello World!'
     let random_shake_enabled = true;
     let white_box_enabled = true;
+    let image_original_width = 0;
+    let image_original_height = 0;
 
     function random_change(n, step, a, b, mt, pt) {
         let r = 1;
@@ -121,6 +126,7 @@
         console.log('update_settings');
         random_shake_enabled = document.getElementById('random_shake').checked;
         white_box_enabled = document.getElementById('white_box').checked;
+        let scale = document.getElementById('scale').value;
         if (white_box_enabled) {
             document.getElementById('box0').style.borderWidth = '2px';
         }
@@ -135,6 +141,7 @@
             document.getElementById('box0').style.backgroundImage = '';
             document.getElementById('box0').style.width = 'auto';
             document.getElementById('box0').style.height = 'auto';
+            document.getElementById('box0').style.fontSize = `${scale / 100}em`;
         }
         else if (document.getElementById('content_style_time').checked) {
             current_style = 'time';
@@ -143,13 +150,20 @@
             document.getElementById('box0').style.backgroundImage = '';
             document.getElementById('box0').style.width = 'auto';
             document.getElementById('box0').style.height = 'auto';
+            document.getElementById('box0').style.fontSize = `${scale / 100}em`;
         }
         else if (document.getElementById('content_style_image').checked) {
             current_style = 'image';
             document.getElementById('box0').innerHTML = '<img id="content_image" src="#" alt="请选择图片～">';
             let [file] = document.getElementById('imgInp').files;
             if (file) {
+                document.getElementById('box0').style.fontSize = `1em`;
                 document.getElementById('content_image').src = URL.createObjectURL(file);
+                document.getElementById('content_image').onload = function() {
+                    image_original_width = this.width;
+                    image_original_height = this.height;
+                    this.width = image_original_width * scale / 100;
+                }
             }
         }
     }
@@ -160,6 +174,7 @@
     }
 
     function update_box_status() {
+        let scale = document.getElementById('scale').value;
         if (current_style == 'time') {
             current_content = get_current_datetime();
             document.getElementById('box0').innerHTML = current_content;
@@ -169,8 +184,8 @@
             box_status['h'] = document.getElementById('box0').clientHeight;
         }
         if (current_style == 'image') {
-            box_status['w'] = document.getElementById('content_image').width;
-            box_status['h'] = document.getElementById('content_image').height;
+            box_status['w'] = image_original_width * scale / 100;
+            box_status['h'] = image_original_height * scale / 100;
             document.getElementById('box0').style.width = `${box_status['w']}px`;
             document.getElementById('box0').style.height = `${box_status['h']}px`;
         }
