@@ -61,6 +61,13 @@
     </div>
 </body>
 <script>
+    const query_string = window.location.search;
+    const url_params = new URLSearchParams(query_string);
+    let page_id = url_params.get('id');
+    if (!page_id) {
+        page_id = 'default';
+    }
+
     let SCREEN_WIDTH = 1920;
     let SCREEN_HEIGHT = 1080;
 
@@ -270,6 +277,7 @@
         else {
             console.log('保存设置');
             let storage = window.localStorage;
+            let settings_data = JSON.parse(storage['white_box_settings']);
             let data_to_save = {
                 'settings_display': document.getElementById('div_settings').style.display,
                 'mode': current_mode,
@@ -277,9 +285,10 @@
                 'random_shake_enabled': random_shake_enabled,
                 'white_box_enabled': white_box_enabled,
                 'scale': document.getElementById('scale').value,
+                'image': current_image,
             };
-            storage['white_box_settings'] = JSON.stringify(data_to_save);
-            storage['white_box_image'] = current_image;
+            settings_data[page_id] = data_to_save;
+            storage['white_box_settings'] = JSON.stringify(settings_data);
             return true;
         }
     }
@@ -291,10 +300,15 @@
         else {
             console.log('加载已保存的设置');
             if (!('white_box_settings' in window.localStorage)) {
-                console.log('没有找到已保存的设置');
+                console.log(`没有找到已保存的设置`);
                 return false;
             }
-            let data = JSON.parse(window.localStorage['white_box_settings']);
+            let settings_data = JSON.parse(window.localStorage['white_box_settings']);
+            if (!(page_id in settings_data)) {
+                console.log(`没有找到已保存的设置 ${page_id}`);
+                return false;
+            }
+            let data = settings_data[page_id];
             if ('settings_display' in data) {
                 document.getElementById('div_settings').style.display = data['settings_display'];
             }
@@ -313,7 +327,9 @@
             if ('content' in data) {
                 current_content = data['content'];
             }
-            current_image = localStorage.getItem('white_box_image');
+            if ('image' in data) {
+                current_image = data['image'];
+            }
             return true;
         }
     }
