@@ -260,6 +260,7 @@
         else {
             document.getElementById('div_settings').style.display = 'none';
         }
+        save_settings();
     }
 
     function save_settings() {
@@ -270,6 +271,7 @@
             console.log('保存设置');
             let storage = window.localStorage;
             let data_to_save = {
+                'settings_display': document.getElementById('div_settings').style.display,
                 'mode': current_mode,
                 'content': current_content,
                 'random_shake_enabled': random_shake_enabled,
@@ -293,6 +295,9 @@
                 return false;
             }
             let data = JSON.parse(window.localStorage['white_box_settings']);
+            if ('settings_display' in data) {
+                document.getElementById('div_settings').style.display = data['settings_display'];
+            }
             if ('mode' in data) {
                 document.getElementById(`content_mode_${data['mode']}`).checked = true;
             }
