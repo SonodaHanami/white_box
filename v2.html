@@ -43,13 +43,13 @@
         <p>使用方法：在OBS“来源”添加“浏览器源”，URL填写本页面链接，之后使用“交互”与页面交互</p>
         <h2>设置</h2>
         <p>
-            <input type="checkbox" id="white_box" checked><label for="white_box">白框</label><br>
-            <input type="checkbox" id="random_shake" checked><label for="random_shake">随机抖动</label><br>
+            <input type="radio" name="content_mode" id="content_mode_text" checked>文字：<input type="text" id='content_text' placeholder="在页面上显示的文字" value="Hello World!"><br>
+            <input type="radio" name="content_mode" id="content_mode_time">当前时间<br>
+            <input type="radio" name="content_mode" id="content_mode_image">图片：<input accept="image/*" type='file' id="imgInp">
         </p>
         <p>
-            <input type="radio" name="content_style" id="content_style_text" checked>文字：<input type="text" id='content_text' placeholder="在页面上显示的文字" value="Hello World!"><br>
-            <input type="radio" name="content_style" id="content_style_time">当前时间<br>
-            <input type="radio" name="content_style" id="content_style_image">图片：<input accept="image/*" type='file' id="imgInp">
+            <input type="checkbox" id="white_box" checked><label for="white_box">白框</label><br>
+            <input type="checkbox" id="random_shake" checked><label for="random_shake">随机抖动</label><br>
         </p>
         <p>
             缩放：<input type="number" id="scale" min="1" max="1000" value=100>%
@@ -83,12 +83,20 @@
         'ys': 1,
     }
 
-    let current_style = 'text';
+    let current_mode = 'text';
     let current_content = 'Hello World!'
+    let current_image;
     let random_shake_enabled = true;
     let white_box_enabled = true;
     let image_original_width = 0;
     let image_original_height = 0;
+
+    let reader = new FileReader();
+    reader.onload = function() {
+        current_image = this.result;
+        document.getElementById('content_image').src = current_image;
+        save_settings();
+    }
 
     function random_change(n, step, a, b, mt, pt) {
         let r = 1;
@@ -134,8 +142,8 @@
             document.getElementById('box0').style.borderWidth = '0';
         }
         
-        if (document.getElementById('content_style_text').checked) {
-            current_style = 'text';
+        if (document.getElementById('content_mode_text').checked) {
+            current_mode = 'text';
             current_content = document.getElementById('content_text').value;
             document.getElementById('box0').innerHTML = current_content;
             document.getElementById('box0').style.backgroundImage = '';
@@ -143,8 +151,8 @@
             document.getElementById('box0').style.height = 'auto';
             document.getElementById('box0').style.fontSize = `${scale / 100}em`;
         }
-        else if (document.getElementById('content_style_time').checked) {
-            current_style = 'time';
+        else if (document.getElementById('content_mode_time').checked) {
+            current_mode = 'time';
             current_content = get_current_datetime();
             document.getElementById('box0').innerHTML = current_content;
             document.getElementById('box0').style.backgroundImage = '';
@@ -152,18 +160,20 @@
             document.getElementById('box0').style.height = 'auto';
             document.getElementById('box0').style.fontSize = `${scale / 100}em`;
         }
-        else if (document.getElementById('content_style_image').checked) {
-            current_style = 'image';
+        else if (document.getElementById('content_mode_image').checked) {
+            current_mode = 'image';
             document.getElementById('box0').innerHTML = '<img id="content_image" src="#" alt="请选择图片～">';
+            document.getElementById('content_image').onload = function() {
+                image_original_width = this.width;
+                image_original_height = this.height;
+                this.width = image_original_width * scale / 100;
+            }
             let [file] = document.getElementById('imgInp').files;
             if (file) {
-                document.getElementById('box0').style.fontSize = `1em`;
-                document.getElementById('content_image').src = URL.createObjectURL(file);
-                document.getElementById('content_image').onload = function() {
-                    image_original_width = this.width;
-                    image_original_height = this.height;
-                    this.width = image_original_width * scale / 100;
-                }
+                reader.readAsDataURL(file);
+            }
+            else if (current_image) {
+                document.getElementById('content_image').src = current_image;
             }
         }
     }
@@ -175,15 +185,15 @@
 
     function update_box_status() {
         let scale = document.getElementById('scale').value;
-        if (current_style == 'time') {
+        if (current_mode == 'time') {
             current_content = get_current_datetime();
             document.getElementById('box0').innerHTML = current_content;
         }
-        if (current_style == 'text' || current_style == 'time') {
+        if (current_mode == 'text' || current_mode == 'time') {
             box_status['w'] = document.getElementById('box0').clientWidth;
             box_status['h'] = document.getElementById('box0').clientHeight;
         }
-        if (current_style == 'image') {
+        if (current_mode == 'image') {
             box_status['w'] = image_original_width * scale / 100;
             box_status['h'] = image_original_height * scale / 100;
             document.getElementById('box0').style.width = `${box_status['w']}px`;
@@ -252,12 +262,67 @@
         }
     }
 
+    function save_settings() {
+        if (!window.localStorage) {
+            console.error('浏览器不支持localStorage');
+        }
+        else {
+            console.log('保存设置');
+            let storage = window.localStorage;
+            let data_to_save = {
+                'mode': current_mode,
+                'content': current_content,
+                'random_shake_enabled': random_shake_enabled,
+                'white_box_enabled': white_box_enabled,
+                'scale': document.getElementById('scale').value,
+            };
+            storage['white_box_settings'] = JSON.stringify(data_to_save);
+            storage['white_box_image'] = current_image;
+            return true;
+        }
+    }
+
+    function load_settings() {
+        if (!window.localStorage) {
+            console.error("浏览器不支持localStorage");
+        }
+        else {
+            console.log('加载已保存的设置');
+            if (!('white_box_settings' in window.localStorage)) {
+                console.log('没有找到已保存的设置');
+                return false;
+            }
+            let data = JSON.parse(window.localStorage['white_box_settings']);
+            if ('mode' in data) {
+                document.getElementById(`content_mode_${data['mode']}`).checked = true;
+            }
+            if ('random_shake_enabled' in data) {
+                document.getElementById('random_shake').checked = data['random_shake_enabled'];
+            }
+            if ('white_box_enabled' in data) {
+                document.getElementById('white_box').checked = data['white_box_enabled'];
+            }
+            if ('scale' in data) {
+                document.getElementById('scale').value = data['scale'];
+            }
+            if ('content' in data) {
+                current_content = data['content'];
+            }
+            current_image = localStorage.getItem('white_box_image');
+            return true;
+        }
+    }
+
     let inputs = document.getElementsByTagName('input');
     for (let i = 0; i < inputs.length - 1; i++) {
         // 跳过最后一个（隐藏设置）
-        inputs[i].onchange = () => update_settings();
+        inputs[i].onchange = () => {
+            update_settings();
+            save_settings();
+        }
     }
 
+    load_settings();
     update_settings();
     init_box_status();
     setInterval(update_box_status, 10);
