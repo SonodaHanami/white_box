@@ -52,7 +52,8 @@
             <input type="checkbox" id="random_shake" checked><label for="random_shake">随机抖动</label><br>
         </p>
         <p>
-            缩放：<input type="number" id="scale" min="1" max="1000" value=100>%
+            缩放：<input type="number" id="scale" min="1" max="1000" value="100">%<br>
+            速度：<input type="number" id="speed" min="0.1" max="10" value="1">x<br>
         </p>
         <p><input type="submit" value="隐藏设置" onclick="handle_settings();">点击页面也可以显示/隐藏设置</p>
     </div>
@@ -142,6 +143,7 @@
         random_shake_enabled = document.getElementById('random_shake').checked;
         white_box_enabled = document.getElementById('white_box').checked;
         let scale = document.getElementById('scale').value;
+        let speed = document.getElementById('speed').value;
         if (white_box_enabled) {
             document.getElementById('box0').style.borderWidth = '2px';
         }
@@ -192,6 +194,7 @@
 
     function update_box_status() {
         let scale = document.getElementById('scale').value;
+        let speed = document.getElementById('speed').value;
         if (current_mode == 'time') {
             current_content = get_current_datetime();
             document.getElementById('box0').innerHTML = current_content;
@@ -214,8 +217,8 @@
         }
 
         elm = document.getElementById(`box0`);
-        box_status['x'] = random_change(box_status['x'], 1 * box_status['xs'], 0, SCREEN_WIDTH, PLUS_THRESHOLD, MINUS_THRESHOLD);
-        box_status['y'] = random_change(box_status['y'], 1 * box_status['ys'], 0, SCREEN_HEIGHT, PLUS_THRESHOLD, MINUS_THRESHOLD);
+        box_status['x'] = random_change(box_status['x'], speed * box_status['xs'], 0, SCREEN_WIDTH, PLUS_THRESHOLD, MINUS_THRESHOLD);
+        box_status['y'] = random_change(box_status['y'], speed * box_status['ys'], 0, SCREEN_HEIGHT, PLUS_THRESHOLD, MINUS_THRESHOLD);
         box_status['r'] = random_change(box_status['r'], 0.1, MIN_RATIO, MAX_RATIO), PLUS_THRESHOLD, MINUS_THRESHOLD;
 
         if (box_status['x'] > SCREEN_WIDTH) {
@@ -285,6 +288,7 @@
                 'random_shake_enabled': random_shake_enabled,
                 'white_box_enabled': white_box_enabled,
                 'scale': document.getElementById('scale').value,
+                'speed': document.getElementById('speed').value,
                 'image': current_image,
             };
             settings_data[page_id] = data_to_save;
@@ -323,6 +327,9 @@
             }
             if ('scale' in data) {
                 document.getElementById('scale').value = data['scale'];
+            }
+            if ('speed' in data) {
+                document.getElementById('speed').value = data['speed'];
             }
             if ('content' in data) {
                 current_content = data['content'];
