@@ -49,7 +49,7 @@
         </p>
         <p>
             <input type="checkbox" id="white_box" checked><label for="white_box">白框</label><br>
-            <input type="checkbox" id="random_shake" checked><label for="random_shake">随机抖动</label><br>
+            <input type="checkbox" id="random_shake" checked><label for="random_shake">随机抖动</label>，幅度：<input type="number" id="random_shake_range" min="1" max="100" value="1"><br>
         </p>
         <p>
             缩放：<input type="number" id="scale" min="1" max="1000" value="100">%<br>
@@ -108,12 +108,6 @@
 
     function random_change(n, step, a, b, mt, pt) {
         let r = 1;
-        if (random_shake_enabled) {
-            r = Math.random();
-            if (r < 0.5) {
-                step = step * 2;
-            }
-        }
         if (n - step <= a) {
             return n + step;
         }
@@ -130,6 +124,18 @@
         }
         else {
             return n;
+        }
+    }
+
+    function move_box(origin, step, min_, max_) {
+        if (origin - step <= max_) {
+            return origin + step;
+        }
+        else if (origin + step >= min_) {
+            return origin - step;
+        }
+        else {
+            return origin;
         }
     }
 
@@ -217,8 +223,8 @@
         }
 
         elm = document.getElementById(`box0`);
-        box_status['x'] = random_change(box_status['x'], speed * box_status['xs'], 0, SCREEN_WIDTH, PLUS_THRESHOLD, MINUS_THRESHOLD);
-        box_status['y'] = random_change(box_status['y'], speed * box_status['ys'], 0, SCREEN_HEIGHT, PLUS_THRESHOLD, MINUS_THRESHOLD);
+        box_status['x'] = move_box(box_status['x'], speed * box_status['xs'], 0, SCREEN_WIDTH);
+        box_status['y'] = move_box(box_status['y'], speed * box_status['ys'], 0, SCREEN_HEIGHT);
         box_status['r'] = random_change(box_status['r'], 0.1, MIN_RATIO, MAX_RATIO), PLUS_THRESHOLD, MINUS_THRESHOLD;
 
         if (box_status['x'] > SCREEN_WIDTH) {
@@ -259,8 +265,14 @@
             box_status['ys'] = -box_status['ys'];
         }
 
-        elm.style.left = `${box_status['x']}px`;
-        elm.style.top = `${box_status['y']}px`;
+        let random_shake_x = 0, random_shake_y = 0;
+        if (random_shake_enabled) {
+            random_shake_x = Math.random() * (Math.floor((Math.random() < 0.5) * 2) - 1) * document.getElementById('random_shake_range').value;
+            random_shake_y = Math.random() * (Math.floor((Math.random() < 0.5) * 2) - 1) * document.getElementById('random_shake_range').value;
+        }
+
+        elm.style.left = `${box_status['x'] + random_shake_x}px`;
+        elm.style.top = `${box_status['y'] + random_shake_y}px`;
     }
 
     function handle_settings() {
